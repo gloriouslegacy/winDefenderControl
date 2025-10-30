@@ -13,6 +13,7 @@ test_etc/
 *.iml
 *.log
 *.swap
+^test
 
 
 #Django stuff:
