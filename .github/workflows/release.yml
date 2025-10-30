@@ -109,13 +109,13 @@ jobs:
           
           $versionInfo | Out-File -FilePath "version_info.txt" -Encoding UTF8
 
-      # PyInstaller로 빌드
+      # PyInstaller로 빌드 (수정된 부분)
       - name: Build with PyInstaller
         run: |
-          pyinstaller --noconfirm --onefile --windowed --icon "./icon/winDefender.ico" --add-data "./icon/winDefender.png;./icon" --hide-console "hide-early" --uac-admin --version-file "version_info.txt" --name "winDefenderControl" --clean "winDefenderControl.py"
+          pyinstaller --noconfirm --onefile --windowed --icon "./icon/winDefender.ico" --add-data "./icon;icon" --hide-console "hide-early" --uac-admin --version-file "version_info.txt" --name "winDefenderControl" --clean "winDefenderControl.py"
         shell: pwsh
 
-      # VirusTotal 스캔 결과 URL 생성 (선택적)
+      # VirusTotal 스캔 결과 URL 생성 (선택)
       - name: Generate file hash
         shell: pwsh
         run: |
