@@ -10,11 +10,11 @@ import threading
 DARK_BG = "#1a1d23"  # 메인 배경
 DARK_CARD = "#252932"  # 카드 배경
 DARK_FG = "#FFFFFF"  # 텍스트
+LIGHT_GRAY = "#7f8c8d"  # 회색 텍스트
 ACCENT_BLUE = "#3d8bfd"  # 파란색 강조
 ACCENT_GREEN = "#2ecc71"  # 녹색 (ON)
 ACCENT_RED = "#e74c3c"  # 빨간색 (OFF)
 ACCENT_ORANGE = "#f39c12"  # 주황색
-TOGGLE_BG = "#3d8bfd"  # 토글 버튼 배경
 BUTTON_HOVER = "#4a9eff"
 STATUS_ON = "#2ecc71"
 STATUS_OFF = "#e74c3c"
@@ -121,27 +121,42 @@ def show_custom_info(title, message):
     """정보 메시지"""
     msg_window = tk.Toplevel(root)
     msg_window.title(title)
-    msg_window.geometry("400x450")
+    msg_window.geometry("400x575")
     msg_window.configure(bg=DARK_CARD)
     msg_window.resizable(True, True)
     
-    # 아이콘 설정
     try:
         msg_window.iconbitmap(ICON_FILE)
     except:
         pass
     
-    # 메시지 레이블
-    msg_label = tk.Label(
-        msg_window,
-        text=message,
+    # 텍스트 박스 프레임
+    text_frame = tk.Frame(msg_window, bg=DARK_CARD)
+    text_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=(20, 10))
+    
+    # 스크롤바
+    scrollbar = tk.Scrollbar(text_frame, bg=DARK_CARD)
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+    
+    # 텍스트 박스
+    text_box = tk.Text(
+        text_frame,
         font=("Segoe UI", 10),
         bg=DARK_CARD,
         fg=DARK_FG,
-        wraplength=350,
-        justify=tk.LEFT
+        wrap=tk.WORD,
+        yscrollcommand=scrollbar.set,
+        relief=tk.FLAT,
+        highlightthickness=0,
+        padx=10,
+        pady=10
     )
-    msg_label.pack(pady=30, padx=20)
+    text_box.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    scrollbar.config(command=text_box.yview)
+    
+    # 메시지 삽입
+    text_box.insert("1.0", message)
+    text_box.config(state=tk.DISABLED)  # 읽기 전용
     
     # 확인 버튼
     ok_button = tk.Button(
@@ -157,7 +172,7 @@ def show_custom_info(title, message):
         relief=tk.FLAT,
         cursor="hand2"
     )
-    ok_button.pack(pady=10)
+    ok_button.pack(pady=(0, 15))
     
     def on_hover(e):
         ok_button['bg'] = BUTTON_HOVER
@@ -248,7 +263,6 @@ def enable_defender():
 
 def disable_defender():
     """실시간 보호 비활성화"""
-    # 변조 보호 상태 확인
     tamper_status = check_tamper_protection_status()
     
     if tamper_status == "ON":
@@ -317,7 +331,7 @@ def view_exclusions():
         show_custom_warning("오류", f"제외 목록 조회 실패: {e}")
 
 def open_exclusion_settings():
-    """Windows 보안 제외 설정 페이지 열기"""
+    """Windows 보안의 제외 설정 페이지 열기"""
     show_custom_info(
         "제외 설정 안내", 
         "Windows 보안 설정이 열립니다.\n\n다음 단계를 따라주세요:\n1. '바이러스 및 위협 방지' 클릭\n2. 아래로 스크롤하여\n3. '제외 추가 또는 제거' 클릭"
@@ -331,39 +345,38 @@ def open_defender_security_center():
 def refresh_status():
     """상태 새로고침 (비동기)"""
     def update():
-        status_label.config(text="상태 확인 중...")
+        # 새로고침 중 표시
+        btn_refresh.config(text="새로고침 중...", state=tk.DISABLED)
+        realtime_status_label.config(text="확인 중...", fg=STATUS_UNKNOWN)
+        tamper_status_label.config(text="확인 중...", fg=STATUS_UNKNOWN)
+        
         realtime_status = check_defender_status()
         tamper_status = check_tamper_protection_status()
         
         # 실시간 보호 상태 업데이트
         if realtime_status == "ON":
             realtime_canvas.itemconfig(realtime_circle, fill=STATUS_ON, outline=STATUS_ON)
-            realtime_text.config(text="실시간 보호", fg=DARK_FG)
-            realtime_status_text.config(text="활성화", fg=STATUS_ON)
+            realtime_status_label.config(text="활성화", fg=STATUS_ON)
         elif realtime_status == "OFF":
             realtime_canvas.itemconfig(realtime_circle, fill=STATUS_OFF, outline=STATUS_OFF)
-            realtime_text.config(text="실시간 보호", fg=DARK_FG)
-            realtime_status_text.config(text="비활성화", fg=STATUS_OFF)
+            realtime_status_label.config(text="비활성화", fg=STATUS_OFF)
         else:
             realtime_canvas.itemconfig(realtime_circle, fill=STATUS_UNKNOWN, outline=STATUS_UNKNOWN)
-            realtime_text.config(text="실시간 보호", fg=DARK_FG)
-            realtime_status_text.config(text="알 수 없음", fg=STATUS_UNKNOWN)
+            realtime_status_label.config(text="알 수 없음", fg=STATUS_UNKNOWN)
         
         # 변조 보호 상태 업데이트
         if tamper_status == "ON":
             tamper_canvas.itemconfig(tamper_circle, fill=STATUS_ON, outline=STATUS_ON)
-            tamper_text.config(text="변조 보호", fg=DARK_FG)
-            tamper_status_text.config(text="활성화", fg=STATUS_ON)
+            tamper_status_label.config(text="활성화", fg=STATUS_ON)
         elif tamper_status == "OFF":
             tamper_canvas.itemconfig(tamper_circle, fill=STATUS_OFF, outline=STATUS_OFF)
-            tamper_text.config(text="변조 보호", fg=DARK_FG)
-            tamper_status_text.config(text="비활성화", fg=STATUS_OFF)
+            tamper_status_label.config(text="비활성화", fg=STATUS_OFF)
         else:
             tamper_canvas.itemconfig(tamper_circle, fill=STATUS_UNKNOWN, outline=STATUS_UNKNOWN)
-            tamper_text.config(text="변조 보호", fg=DARK_FG)
-            tamper_status_text.config(text="알 수 없음", fg=STATUS_UNKNOWN)
+            tamper_status_label.config(text="알 수 없음", fg=STATUS_UNKNOWN)
         
-        status_label.config(text="마지막 업데이트: 방금 전")
+        # 새로고침 완료
+        btn_refresh.config(text="새로고침", state=tk.NORMAL)
     
     thread = threading.Thread(target=update, daemon=True)
     thread.start()
@@ -384,7 +397,7 @@ if __name__ == "__main__":
 
     root = tk.Tk()
     root.title("Windows Defender Control")
-    root.geometry("580x780") 
+    root.geometry("400x546") 
     root.resizable(False, False)
 
     try:
@@ -394,155 +407,134 @@ if __name__ == "__main__":
 
     root.configure(bg=DARK_BG)
 
-    # ============ 상단: 타이틀 ============
-    title_frame = tk.Frame(root, bg=DARK_BG)
-    title_frame.pack(pady=(20, 5), fill=tk.X)
+    # ============ 상태 섹션 ============
+    status_section = tk.Frame(root, bg=DARK_BG)
+    status_section.pack(fill=tk.BOTH, padx=15, pady=(15, 10))
     
-    title_label = tk.Label(
-        title_frame, 
-        text="Windows Defender Control", 
-        font=("Segoe UI", 20, "bold"), 
+    status_title = tk.Label(
+        status_section, 
+        text="상태", 
+        font=("Segoe UI", 10, "bold"), 
         bg=DARK_BG, 
-        fg=DARK_FG
+        fg=LIGHT_GRAY,
+        anchor=tk.W
     )
-    title_label.pack()
+    status_title.pack(fill=tk.X)
     
-    # version_label = tk.Label(
-    #     title_frame, 
-    #     text="Version: 1.0", 
-    #     font=("Segoe UI", 9), 
-    #     bg=DARK_BG, 
-    #     fg="#7f8c8d"
-    # )
-    # version_label.pack()
-
-    # ============ 상태 대시보드 카드 ============
-    status_card = tk.Frame(root, bg=DARK_CARD, highlightbackground=BORDER_COLOR, highlightthickness=1)
-    status_card.pack(pady=15, padx=25, fill=tk.BOTH)
+    # 상태 카드
+    status_card = tk.Frame(status_section, bg=DARK_CARD, highlightbackground=BORDER_COLOR, highlightthickness=1)
+    status_card.pack(fill=tk.BOTH, pady=(5, 0))
     
-    # 실시간 보호 상태
+    # 실시간 보호
     realtime_frame = tk.Frame(status_card, bg=DARK_CARD)
-    realtime_frame.pack(pady=15, padx=20, fill=tk.X)
+    realtime_frame.pack(fill=tk.X, padx=12, pady=10)
     
     realtime_left = tk.Frame(realtime_frame, bg=DARK_CARD)
     realtime_left.pack(side=tk.LEFT)
     
-    realtime_canvas = tk.Canvas(realtime_left, width=20, height=20, bg=DARK_CARD, highlightthickness=0)
-    realtime_canvas.pack(side=tk.LEFT, padx=(0, 15))
-    realtime_circle = realtime_canvas.create_oval(2, 2, 18, 18, fill=STATUS_UNKNOWN, outline=STATUS_UNKNOWN)
+    realtime_canvas = tk.Canvas(realtime_left, width=16, height=16, bg=DARK_CARD, highlightthickness=0)
+    realtime_canvas.pack(side=tk.LEFT, padx=(0, 10))
+    realtime_circle = realtime_canvas.create_oval(2, 2, 14, 14, fill=STATUS_UNKNOWN, outline=STATUS_UNKNOWN)
     
-    realtime_text = tk.Label(
+    realtime_label = tk.Label(
         realtime_left, 
         text="실시간 보호", 
-        font=("Segoe UI", 12), 
+        font=("Segoe UI", 10), 
         bg=DARK_CARD, 
         fg=DARK_FG
     )
-    realtime_text.pack(side=tk.LEFT)
+    realtime_label.pack(side=tk.LEFT)
     
-    realtime_status_text = tk.Label(
+    realtime_status_label = tk.Label(
         realtime_frame, 
         text="확인 중...", 
-        font=("Segoe UI", 11), 
+        font=("Segoe UI", 9), 
         bg=DARK_CARD, 
         fg=STATUS_UNKNOWN
     )
-    realtime_status_text.pack(side=tk.RIGHT, padx=20)
+    realtime_status_label.pack(side=tk.RIGHT)
     
     # 구분선
-    separator1 = tk.Frame(status_card, bg=BORDER_COLOR, height=1)
-    separator1.pack(fill=tk.X, padx=20)
+    tk.Frame(status_card, bg=BORDER_COLOR, height=1).pack(fill=tk.X, padx=12)
     
-    # 변조 보호 상태
+    # 변조 보호
     tamper_frame = tk.Frame(status_card, bg=DARK_CARD)
-    tamper_frame.pack(pady=15, padx=20, fill=tk.X)
+    tamper_frame.pack(fill=tk.X, padx=12, pady=10)
     
     tamper_left = tk.Frame(tamper_frame, bg=DARK_CARD)
     tamper_left.pack(side=tk.LEFT)
     
-    tamper_canvas = tk.Canvas(tamper_left, width=20, height=20, bg=DARK_CARD, highlightthickness=0)
-    tamper_canvas.pack(side=tk.LEFT, padx=(0, 15))
-    tamper_circle = tamper_canvas.create_oval(2, 2, 18, 18, fill=STATUS_UNKNOWN, outline=STATUS_UNKNOWN)
+    tamper_canvas = tk.Canvas(tamper_left, width=16, height=16, bg=DARK_CARD, highlightthickness=0)
+    tamper_canvas.pack(side=tk.LEFT, padx=(0, 10))
+    tamper_circle = tamper_canvas.create_oval(2, 2, 14, 14, fill=STATUS_UNKNOWN, outline=STATUS_UNKNOWN)
     
-    tamper_text = tk.Label(
+    tamper_label = tk.Label(
         tamper_left, 
         text="변조 보호", 
-        font=("Segoe UI", 12), 
+        font=("Segoe UI", 10), 
         bg=DARK_CARD, 
         fg=DARK_FG
     )
-    tamper_text.pack(side=tk.LEFT)
+    tamper_label.pack(side=tk.LEFT)
     
-    tamper_status_text = tk.Label(
+    tamper_status_label = tk.Label(
         tamper_frame, 
         text="확인 중...", 
-        font=("Segoe UI", 11), 
+        font=("Segoe UI", 9), 
         bg=DARK_CARD, 
         fg=STATUS_UNKNOWN
     )
-    tamper_status_text.pack(side=tk.RIGHT, padx=20)
-    
-    # 구분선
-    separator2 = tk.Frame(status_card, bg=BORDER_COLOR, height=1)
-    separator2.pack(fill=tk.X, padx=20)
+    tamper_status_label.pack(side=tk.RIGHT)
     
     # 새로고침 버튼
-    refresh_frame = tk.Frame(status_card, bg=DARK_CARD)
-    refresh_frame.pack(pady=15)
-    
     btn_refresh = tk.Button(
-        refresh_frame, 
+        status_card, 
         text="새로고침", 
         command=refresh_status, 
-        width=15, 
-        height=1,
         bg=ACCENT_BLUE, 
         fg=DARK_FG, 
-        font=("Segoe UI", 10, "bold"), 
+        font=("Segoe UI", 9, "bold"), 
         bd=0, 
         relief=tk.FLAT,
-        cursor="hand2"
+        cursor="hand2",
+        width=12,
+        height=1
     )
-    btn_refresh.pack()
+    btn_refresh.pack(pady=10)
     btn_refresh.bind("<Enter>", lambda e: on_enter(e, btn_refresh, BUTTON_HOVER))
     btn_refresh.bind("<Leave>", lambda e: on_leave(e, btn_refresh, ACCENT_BLUE))
-    
-    status_label = tk.Label(
-        status_card, 
-        text="'새로고침'을 눌러 상태를 확인하세요", 
-        font=("Segoe UI", 9), 
-        bg=DARK_CARD, 
-        fg="#7f8c8d"
-    )
-    status_label.pack(pady=(0, 15))
 
-    # ============ 제어 카드 ============
-    control_card = tk.Frame(root, bg=DARK_CARD, highlightbackground=BORDER_COLOR, highlightthickness=1)
-    control_card.pack(pady=10, padx=25, fill=tk.BOTH)
+    # ============ 제어 섹션 ============
+    control_section = tk.Frame(root, bg=DARK_BG)
+    control_section.pack(fill=tk.BOTH, padx=15, pady=10)
     
     control_title = tk.Label(
-        control_card, 
+        control_section, 
         text="실시간 보호 제어", 
-        font=("Segoe UI", 13, "bold"), 
-        bg=DARK_CARD, 
-        fg=DARK_FG
+        font=("Segoe UI", 10, "bold"), 
+        bg=DARK_BG, 
+        fg=LIGHT_GRAY,
+        anchor=tk.W
     )
-    control_title.pack(pady=(15, 15), anchor=tk.W, padx=20)
+    control_title.pack(fill=tk.X)
+    
+    control_card = tk.Frame(control_section, bg=DARK_CARD, highlightbackground=BORDER_COLOR, highlightthickness=1)
+    control_card.pack(fill=tk.BOTH, pady=(5, 0))
     
     btn_enable = tk.Button(
         control_card, 
         text="활성화", 
         command=enable_defender, 
-        width=20, 
-        height=1, 
         bg=ACCENT_GREEN, 
         fg=DARK_FG, 
-        font=("Segoe UI", 11, "bold"), 
+        font=("Segoe UI", 10, "bold"), 
         bd=0, 
         relief=tk.FLAT,
-        cursor="hand2"
+        cursor="hand2",
+        width=15,
+        height=1
     )
-    btn_enable.pack(pady=5)
+    btn_enable.pack(pady=(12, 5))
     btn_enable.bind("<Enter>", lambda e: on_enter(e, btn_enable, "#27ae60"))
     btn_enable.bind("<Leave>", lambda e: on_leave(e, btn_enable, ACCENT_GREEN))
 
@@ -550,46 +542,50 @@ if __name__ == "__main__":
         control_card, 
         text="비활성화", 
         command=disable_defender, 
-        width=20, 
-        height=1, 
         bg=ACCENT_RED, 
         fg=DARK_FG, 
-        font=("Segoe UI", 11, "bold"), 
+        font=("Segoe UI", 10, "bold"), 
         bd=0, 
         relief=tk.FLAT,
-        cursor="hand2"
+        cursor="hand2",
+        width=15,
+        height=1
     )
-    btn_disable.pack(pady=(5, 15))
+    btn_disable.pack(pady=(5, 12))
     btn_disable.bind("<Enter>", lambda e: on_enter(e, btn_disable, "#c0392b"))
     btn_disable.bind("<Leave>", lambda e: on_leave(e, btn_disable, ACCENT_RED))
 
-    # ============ 제외 목록 관리 카드 ============
-    exclusion_card = tk.Frame(root, bg=DARK_CARD, highlightbackground=BORDER_COLOR, highlightthickness=1)
-    exclusion_card.pack(pady=10, padx=25, fill=tk.BOTH)
+    # ============ 제외 목록 섹션 ============
+    exclusion_section = tk.Frame(root, bg=DARK_BG)
+    exclusion_section.pack(fill=tk.BOTH, padx=15, pady=10)
     
     exclusion_title = tk.Label(
-        exclusion_card, 
+        exclusion_section, 
         text="제외 목록 관리", 
-        font=("Segoe UI", 13, "bold"), 
-        bg=DARK_CARD, 
-        fg=DARK_FG
+        font=("Segoe UI", 10, "bold"), 
+        bg=DARK_BG, 
+        fg=LIGHT_GRAY,
+        anchor=tk.W
     )
-    exclusion_title.pack(pady=(15, 15), anchor=tk.W, padx=20)
+    exclusion_title.pack(fill=tk.X)
+    
+    exclusion_card = tk.Frame(exclusion_section, bg=DARK_CARD, highlightbackground=BORDER_COLOR, highlightthickness=1)
+    exclusion_card.pack(fill=tk.BOTH, pady=(5, 0))
     
     btn_add_folder = tk.Button(
         exclusion_card, 
         text="폴더 제외 추가", 
         command=add_exclusion_folder, 
-        width=20, 
-        height=1, 
         bg=ACCENT_BLUE, 
         fg=DARK_FG, 
-        font=("Segoe UI", 10, "bold"), 
+        font=("Segoe UI", 9, "bold"), 
         bd=0, 
         relief=tk.FLAT,
-        cursor="hand2"
+        cursor="hand2",
+        width=18,
+        height=1
     )
-    btn_add_folder.pack(pady=3)
+    btn_add_folder.pack(pady=(10, 4))
     btn_add_folder.bind("<Enter>", lambda e: on_enter(e, btn_add_folder, BUTTON_HOVER))
     btn_add_folder.bind("<Leave>", lambda e: on_leave(e, btn_add_folder, ACCENT_BLUE))
 
@@ -597,16 +593,16 @@ if __name__ == "__main__":
         exclusion_card, 
         text="파일 제외 추가", 
         command=add_exclusion_file, 
-        width=20, 
-        height=1, 
         bg=ACCENT_BLUE, 
         fg=DARK_FG, 
-        font=("Segoe UI", 10, "bold"), 
+        font=("Segoe UI", 9, "bold"), 
         bd=0, 
         relief=tk.FLAT,
-        cursor="hand2"
+        cursor="hand2",
+        width=18,
+        height=1
     )
-    btn_add_file.pack(pady=3)
+    btn_add_file.pack(pady=4)
     btn_add_file.bind("<Enter>", lambda e: on_enter(e, btn_add_file, BUTTON_HOVER))
     btn_add_file.bind("<Leave>", lambda e: on_leave(e, btn_add_file, ACCENT_BLUE))
 
@@ -614,16 +610,16 @@ if __name__ == "__main__":
         exclusion_card, 
         text="제외 목록 보기", 
         command=view_exclusions, 
-        width=20, 
-        height=1, 
         bg=ACCENT_BLUE, 
         fg=DARK_FG, 
-        font=("Segoe UI", 10, "bold"), 
+        font=("Segoe UI", 9, "bold"), 
         bd=0, 
         relief=tk.FLAT,
-        cursor="hand2"
+        cursor="hand2",
+        width=18,
+        height=1
     )
-    btn_view_exclusions.pack(pady=3)
+    btn_view_exclusions.pack(pady=4)
     btn_view_exclusions.bind("<Enter>", lambda e: on_enter(e, btn_view_exclusions, BUTTON_HOVER))
     btn_view_exclusions.bind("<Leave>", lambda e: on_leave(e, btn_view_exclusions, ACCENT_BLUE))
 
@@ -631,37 +627,37 @@ if __name__ == "__main__":
         exclusion_card, 
         text="제외 설정 바로가기", 
         command=open_exclusion_settings, 
-        width=20, 
-        height=1, 
         bg=ACCENT_BLUE, 
         fg=DARK_FG, 
-        font=("Segoe UI", 10, "bold"), 
+        font=("Segoe UI", 9, "bold"), 
         bd=0, 
         relief=tk.FLAT,
-        cursor="hand2"
+        cursor="hand2",
+        width=18,
+        height=1
     )
-    btn_open_exclusion.pack(pady=(3, 15))
+    btn_open_exclusion.pack(pady=(4, 10))
     btn_open_exclusion.bind("<Enter>", lambda e: on_enter(e, btn_open_exclusion, BUTTON_HOVER))
     btn_open_exclusion.bind("<Leave>", lambda e: on_leave(e, btn_open_exclusion, ACCENT_BLUE))
 
     # ============ 하단 버튼 ============
     bottom_frame = tk.Frame(root, bg=DARK_BG)
-    bottom_frame.pack(pady=(15, 20))
+    bottom_frame.pack(pady=(5, 15))
     
     btn_open = tk.Button(
         bottom_frame, 
-        text="Windows 보안 열기", 
+        text="Windows 보안", 
         command=open_defender_security_center, 
-        width=18, 
-        height=1, 
         bg=ACCENT_BLUE, 
         fg=DARK_FG, 
-        font=("Segoe UI", 10, "bold"), 
+        font=("Segoe UI", 9, "bold"), 
         bd=0, 
         relief=tk.FLAT,
-        cursor="hand2"
+        cursor="hand2",
+        width=14,
+        height=1
     )
-    btn_open.pack(side=tk.LEFT, padx=5)
+    btn_open.pack(side=tk.LEFT, padx=3)
     btn_open.bind("<Enter>", lambda e: on_enter(e, btn_open, BUTTON_HOVER))
     btn_open.bind("<Leave>", lambda e: on_leave(e, btn_open, ACCENT_BLUE))
 
@@ -669,16 +665,16 @@ if __name__ == "__main__":
         bottom_frame, 
         text="종료", 
         command=app_exit, 
-        width=10, 
-        height=1,
         bg="#34383f", 
         fg=DARK_FG, 
-        font=("Segoe UI", 10), 
+        font=("Segoe UI", 9), 
         bd=0, 
         relief=tk.FLAT,
-        cursor="hand2"
+        cursor="hand2",
+        width=8,
+        height=1
     )
-    btn_exit.pack(side=tk.LEFT, padx=5)
+    btn_exit.pack(side=tk.LEFT, padx=3)
     btn_exit.bind("<Enter>", lambda e: on_enter(e, btn_exit, "#45494f"))
     btn_exit.bind("<Leave>", lambda e: on_leave(e, btn_exit, "#34383f"))
 
