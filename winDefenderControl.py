@@ -36,8 +36,14 @@ def toggle_language():
     set_language(new_lang)
     
     # Restart application
-    python = sys.executable
-    os.execl(python, python, *sys.argv)
+    if getattr(sys, 'frozen', False):
+        # PyInstaller로 빌드된 경우
+        subprocess.Popen([sys.executable] + sys.argv)
+    else:
+        # 일반 Python 스크립트 실행의 경우
+        subprocess.Popen([sys.executable] + sys.argv)
+    
+    sys.exit(0)
 
 # Get current language
 CURRENT_LANG = get_language()

@@ -14,6 +14,8 @@ test_etc/
 *.log
 *.swap
 
+defender_lang.json
+
 
 #Django stuff:
 local_settings.py
