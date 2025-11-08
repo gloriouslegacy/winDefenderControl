@@ -8,20 +8,9 @@ import threading
 import json
 
 # --- Language Configuration ---
-def get_lang_file_path():
-    """Get language file path in user's AppData"""
-    if os.name == 'nt':
-        appdata = os.environ.get('APPDATA', os.path.expanduser('~'))
-        app_dir = os.path.join(appdata, 'DefenderControl')
-        if not os.path.exists(app_dir):
-            try:
-                os.makedirs(app_dir)
-            except:
-                pass
-        return os.path.join(app_dir, 'defender_lang.json')
-    return 'defender_lang.json'
-
-LANG_FILE = get_lang_file_path()
+APPDATA_DIR = os.path.join(os.getenv('APPDATA'), 'DefenderControl')
+os.makedirs(APPDATA_DIR, exist_ok=True)
+LANG_FILE = os.path.join(APPDATA_DIR, "defender_lang.json")
 
 def get_language():
     """Get current language setting"""
@@ -43,40 +32,8 @@ def set_language(lang):
         pass
 
 def toggle_language():
-    """Toggle language and restart"""
-    current_lang = get_language()
-    new_lang = 'ko' if current_lang == 'en' else 'en'
-    set_language(new_lang)
-    
-    if getattr(sys, 'frozen', False):
-        exe_path = sys.executable
-        
-        ps_command = f'''
-        Start-Sleep -Seconds 5
-        Start-Process -FilePath "{exe_path}"
-        '''
-        
-        try:
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            startupinfo.wShowWindow = subprocess.SW_HIDE
-            
-            subprocess.Popen([
-                'powershell.exe',
-                '-WindowStyle', 'Hidden',
-                '-ExecutionPolicy', 'Bypass',
-                '-Command', ps_command
-            ], 
-            startupinfo=startupinfo,
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW)
-            
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to restart: {str(e)}")
-            return
-    else:
-        subprocess.Popen([sys.executable, __file__])
-    
-    os._exit(0)
+    """Toggle language without restart - will be connected to update_ui_language in main"""
+    pass  # This will be replaced with actual function in main()
 
 # Get current language
 CURRENT_LANG = get_language()
@@ -604,6 +561,41 @@ if __name__ == "__main__":
 
     root.configure(bg=WIN11_BG)
 
+    # Widget dictionary to store all text widgets for language update
+    widgets = {}
+    
+    def update_ui_language():
+        """Update all UI text without restarting"""
+        global CURRENT_LANG
+        
+        # Toggle language
+        current_lang = get_language()
+        new_lang = 'ko' if current_lang == 'en' else 'en'
+        set_language(new_lang)
+        CURRENT_LANG = new_lang
+        
+        # Update window title
+        root.title(_('title'))
+        
+        # Update all stored widgets
+        widgets['btn_lang'].config(text=f"🌐 {_('lang_toggle')}")
+        widgets['main_title'].config(text=_('main_title'))
+        widgets['subtitle'].config(text=_('subtitle'))
+        widgets['status_title'].config(text=_('status'))
+        widgets['realtime_label'].config(text=_('realtime_protection'))
+        widgets['tamper_label'].config(text=_('tamper_protection'))
+        widgets['btn_refresh'].config(text=_('refresh'))
+        widgets['control_title'].config(text=_('control_title'))
+        widgets['btn_enable'].config(text=_('enable'))
+        widgets['btn_disable'].config(text=_('disable'))
+        widgets['exclusion_title'].config(text=_('exclusion_title'))
+        widgets['btn_add_folder'].config(text=_('add_folder'))
+        widgets['btn_add_file'].config(text=_('add_file'))
+        widgets['btn_view_exclusions'].config(text=_('view_list'))
+        widgets['btn_open_exclusion'].config(text=_('exclusion_settings'))
+        widgets['btn_open'].config(text=_('windows_security'))
+        widgets['btn_exit'].config(text=_('exit'))
+
     # ============ Title Section ============
     title_section = tk.Frame(root, bg=WIN11_BG)
     title_section.pack(fill=tk.X, padx=25, pady=(25, 5))
@@ -615,7 +607,7 @@ if __name__ == "__main__":
     btn_lang = tk.Button(
         lang_frame,
         text=f"🌐 {_('lang_toggle')}",
-        command=toggle_language,
+        command=update_ui_language,
         bg=WIN11_CARD,
         fg=WIN11_TEXT,
         font=("Segoe UI", 9),
@@ -630,6 +622,7 @@ if __name__ == "__main__":
     btn_lang.pack(side=tk.RIGHT)
     btn_lang.bind("<Enter>", lambda e: on_enter(e, btn_lang, WIN11_BORDER))
     btn_lang.bind("<Leave>", lambda e: on_leave(e, btn_lang, WIN11_CARD))
+    widgets['btn_lang'] = btn_lang
     
     main_title = tk.Label(
         title_section,
@@ -639,6 +632,7 @@ if __name__ == "__main__":
         fg=WIN11_TEXT
     )
     main_title.pack(pady=(10, 0))
+    widgets['main_title'] = main_title
     
     subtitle = tk.Label(
         title_section,
@@ -648,6 +642,7 @@ if __name__ == "__main__":
         fg=WIN11_SUBTEXT
     )
     subtitle.pack()
+    widgets['subtitle'] = subtitle
 
     # ============ Status Section ============
     status_section = tk.Frame(root, bg=WIN11_BG)
@@ -662,6 +657,7 @@ if __name__ == "__main__":
         anchor=tk.W
     )
     status_title.pack(fill=tk.X, pady=(0, 8))
+    widgets['status_title'] = status_title
     
     status_card = tk.Frame(status_section, bg=WIN11_CARD, 
                           highlightbackground=WIN11_BORDER, 
@@ -687,6 +683,7 @@ if __name__ == "__main__":
         fg=WIN11_TEXT
     )
     realtime_label.pack(side=tk.LEFT)
+    widgets['realtime_label'] = realtime_label
     
     realtime_status_label = tk.Label(
         realtime_frame, 
@@ -718,6 +715,7 @@ if __name__ == "__main__":
         fg=WIN11_TEXT
     )
     tamper_label.pack(side=tk.LEFT)
+    widgets['tamper_label'] = tamper_label
     
     tamper_status_label = tk.Label(
         tamper_frame, 
@@ -747,6 +745,7 @@ if __name__ == "__main__":
     btn_refresh.pack(pady=15)
     btn_refresh.bind("<Enter>", lambda e: on_enter(e, btn_refresh, WIN11_ACCENT_HOVER))
     btn_refresh.bind("<Leave>", lambda e: on_leave(e, btn_refresh, WIN11_ACCENT))
+    widgets['btn_refresh'] = btn_refresh
 
     # ============ Control Section ============
     control_section = tk.Frame(root, bg=WIN11_BG)
@@ -761,6 +760,7 @@ if __name__ == "__main__":
         anchor=tk.W
     )
     control_title.pack(fill=tk.X, pady=(0, 8))
+    widgets['control_title'] = control_title
     
     control_card = tk.Frame(control_section, bg=WIN11_CARD, 
                            highlightbackground=WIN11_BORDER, 
@@ -786,6 +786,7 @@ if __name__ == "__main__":
     btn_enable.pack(side=tk.LEFT, padx=5)
     btn_enable.bind("<Enter>", lambda e: on_enter(e, btn_enable, darken_color(WIN11_SUCCESS)))
     btn_enable.bind("<Leave>", lambda e: on_leave(e, btn_enable, WIN11_SUCCESS))
+    widgets['btn_enable'] = btn_enable
 
     btn_disable = tk.Button(
         control_buttons, 
@@ -803,6 +804,7 @@ if __name__ == "__main__":
     btn_disable.pack(side=tk.LEFT, padx=5)
     btn_disable.bind("<Enter>", lambda e: on_enter(e, btn_disable, darken_color(WIN11_DANGER)))
     btn_disable.bind("<Leave>", lambda e: btn_disable, WIN11_DANGER)
+    widgets['btn_disable'] = btn_disable
 
     # ============ Exclusion List Section ============
     exclusion_section = tk.Frame(root, bg=WIN11_BG)
@@ -817,6 +819,7 @@ if __name__ == "__main__":
         anchor=tk.W
     )
     exclusion_title.pack(fill=tk.X, pady=(0, 8))
+    widgets['exclusion_title'] = exclusion_title
     
     exclusion_card = tk.Frame(exclusion_section, bg=WIN11_CARD, 
                              highlightbackground=WIN11_BORDER, 
@@ -846,6 +849,7 @@ if __name__ == "__main__":
     btn_add_folder.pack(side=tk.LEFT, padx=3)
     btn_add_folder.bind("<Enter>", lambda e: on_enter(e, btn_add_folder, WIN11_ACCENT_HOVER))
     btn_add_folder.bind("<Leave>", lambda e: on_leave(e, btn_add_folder, WIN11_ACCENT))
+    widgets['btn_add_folder'] = btn_add_folder
 
     btn_add_file = tk.Button(
         row1, 
@@ -863,6 +867,7 @@ if __name__ == "__main__":
     btn_add_file.pack(side=tk.LEFT, padx=3)
     btn_add_file.bind("<Enter>", lambda e: on_enter(e, btn_add_file, WIN11_ACCENT_HOVER))
     btn_add_file.bind("<Leave>", lambda e: on_leave(e, btn_add_file, WIN11_ACCENT))
+    widgets['btn_add_file'] = btn_add_file
 
     # Second Row
     row2 = tk.Frame(exclusion_grid, bg=WIN11_CARD)
@@ -884,6 +889,7 @@ if __name__ == "__main__":
     btn_view_exclusions.pack(side=tk.LEFT, padx=3)
     btn_view_exclusions.bind("<Enter>", lambda e: on_enter(e, btn_view_exclusions, WIN11_ACCENT_HOVER))
     btn_view_exclusions.bind("<Leave>", lambda e: on_leave(e, btn_view_exclusions, WIN11_ACCENT))
+    widgets['btn_view_exclusions'] = btn_view_exclusions
 
     btn_open_exclusion = tk.Button(
         row2, 
@@ -901,6 +907,7 @@ if __name__ == "__main__":
     btn_open_exclusion.pack(side=tk.LEFT, padx=3)
     btn_open_exclusion.bind("<Enter>", lambda e: on_enter(e, btn_open_exclusion, WIN11_ACCENT_HOVER))
     btn_open_exclusion.bind("<Leave>", lambda e: on_leave(e, btn_open_exclusion, WIN11_ACCENT))
+    widgets['btn_open_exclusion'] = btn_open_exclusion
 
     # ============ Bottom Buttons ============
     bottom_frame = tk.Frame(root, bg=WIN11_BG)
@@ -922,6 +929,7 @@ if __name__ == "__main__":
     btn_open.pack(side=tk.LEFT, padx=5)
     btn_open.bind("<Enter>", lambda e: on_enter(e, btn_open, WIN11_ACCENT_HOVER))
     btn_open.bind("<Leave>", lambda e: on_leave(e, btn_open, WIN11_ACCENT))
+    widgets['btn_open'] = btn_open
 
     btn_exit = tk.Button(
         bottom_frame, 
@@ -939,6 +947,7 @@ if __name__ == "__main__":
     btn_exit.pack(side=tk.LEFT, padx=5)
     btn_exit.bind("<Enter>", lambda e: on_enter(e, btn_exit, darken_color(WIN11_GRAY, 0.8)))
     btn_exit.bind("<Leave>", lambda e: on_leave(e, btn_exit, WIN11_GRAY))
+    widgets['btn_exit'] = btn_exit
 
     # Initial Status Check
     refresh_status()
