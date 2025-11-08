@@ -35,12 +35,23 @@ def toggle_language():
     new_lang = 'ko' if current_lang == 'en' else 'en'
     set_language(new_lang)
     
-    # Restart application
-    if getattr(sys, 'frozen', False):
-        # PyInstaller로 빌드된 경우
-        subprocess.Popen([sys.executable] + sys.argv)
+    if os.name == 'nt' and getattr(sys, 'frozen', False):
+        batch_content = f'''@echo off
+timeout /t 1 /nobreak >nul
+start "" "{sys.executable}"
+del "%~f0"
+'''
+        batch_file = os.path.join(os.path.dirname(sys.executable), 'restart_temp.bat')
+        try:
+            with open(batch_file, 'w') as f:
+                f.write(batch_content)
+            subprocess.Popen([batch_file], shell=True, 
+                           creationflags=subprocess.CREATE_NEW_CONSOLE | subprocess.DETACHED_PROCESS,
+                           close_fds=True)
+        except:
+            subprocess.Popen([sys.executable] + sys.argv,
+                           creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
     else:
-        # 일반 Python 스크립트 실행의 경우
         subprocess.Popen([sys.executable] + sys.argv)
     
     sys.exit(0)
