@@ -48,18 +48,33 @@ def toggle_language():
     new_lang = 'ko' if current_lang == 'en' else 'en'
     set_language(new_lang)
     
-    try:
-        if getattr(sys, 'frozen', False):
+    if getattr(sys, 'frozen', False):
+        exe_path = sys.executable
+        
+        ps_command = f'''
+        Start-Sleep -Seconds 5
+        Start-Process -FilePath "{exe_path}"
+        '''
+        
+        try:
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            subprocess.Popen([sys.executable], 
-                           startupinfo=startupinfo,
-                           creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS)
-        else:
-            subprocess.Popen([sys.executable, __file__])
-    except Exception as e:
-        messagebox.showerror("Error", f"Failed to restart: {str(e)}")
-        return
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+            
+            subprocess.Popen([
+                'powershell.exe',
+                '-WindowStyle', 'Hidden',
+                '-ExecutionPolicy', 'Bypass',
+                '-Command', ps_command
+            ], 
+            startupinfo=startupinfo,
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW)
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to restart: {str(e)}")
+            return
+    else:
+        subprocess.Popen([sys.executable, __file__])
     
     os._exit(0)
 
