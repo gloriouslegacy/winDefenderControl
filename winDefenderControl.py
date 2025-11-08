@@ -8,7 +8,20 @@ import threading
 import json
 
 # --- Language Configuration ---
-LANG_FILE = "defender_lang.json"
+def get_lang_file_path():
+    """Get language file path in user's AppData"""
+    if os.name == 'nt':
+        appdata = os.environ.get('APPDATA', os.path.expanduser('~'))
+        app_dir = os.path.join(appdata, 'DefenderControl')
+        if not os.path.exists(app_dir):
+            try:
+                os.makedirs(app_dir)
+            except:
+                pass
+        return os.path.join(app_dir, 'defender_lang.json')
+    return 'defender_lang.json'
+
+LANG_FILE = get_lang_file_path()
 
 def get_language():
     """Get current language setting"""
@@ -35,26 +48,20 @@ def toggle_language():
     new_lang = 'ko' if current_lang == 'en' else 'en'
     set_language(new_lang)
     
-    if os.name == 'nt' and getattr(sys, 'frozen', False):
-        batch_content = f'''@echo off
-timeout /t 1 /nobreak >nul
-start "" "{sys.executable}"
-del "%~f0"
-'''
-        batch_file = os.path.join(os.path.dirname(sys.executable), 'restart_temp.bat')
-        try:
-            with open(batch_file, 'w') as f:
-                f.write(batch_content)
-            subprocess.Popen([batch_file], shell=True, 
-                           creationflags=subprocess.CREATE_NEW_CONSOLE | subprocess.DETACHED_PROCESS,
-                           close_fds=True)
-        except:
-            subprocess.Popen([sys.executable] + sys.argv,
-                           creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
-    else:
-        subprocess.Popen([sys.executable] + sys.argv)
+    try:
+        if getattr(sys, 'frozen', False):
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            subprocess.Popen([sys.executable], 
+                           startupinfo=startupinfo,
+                           creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS)
+        else:
+            subprocess.Popen([sys.executable, __file__])
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to restart: {str(e)}")
+        return
     
-    sys.exit(0)
+    os._exit(0)
 
 # Get current language
 CURRENT_LANG = get_language()
